@@ -22,7 +22,6 @@
         .btn-clear:hover { background-color: #d97706; }
         .btn-export { background-color: #3b82f6; color: white; }
         .btn-export:hover { background-color: #2563eb; }
-        
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         th { background-color: #e0f2f1; color: #064e3b; }
@@ -53,14 +52,13 @@
                     <th>Contagem (Sessão)</th>
                 </tr>
             </thead>
-            <tbody>
-                </tbody>
+            <tbody></tbody>
         </table>
 
         <div class="buttons-area">
-            <button class="btn-save" onclick="salvarContagem()">1. Salvar Contagem (Atualiza Estoque e Histórico)</button>
-            <button class="btn-clear" onclick="limparContador()">2. Limpar Contador (Apenas a Sessão)</button>
-            <button class="btn-export" onclick="exportarDados()">3. Exportar Dados (Estoque e Histórico)</button>
+            <button class="btn-save" onclick="salvarContagem()">Salvar Contagem</button>
+            <button class="btn-clear" onclick="limparContador()">Limpar Sessão</button>
+            <button class="btn-export" onclick="exportarDados()">Exportar Dados</button>
         </div>
     </div>
 
@@ -69,12 +67,82 @@
         const totalCountSpan = document.getElementById('total_count');
         const countTableBody = document.querySelector('#count_table tbody');
         const messageArea = document.getElementById('message_area');
-        
+
         let sessionCount = {};
         let totalCount = 0;
-
-        codigoInput.focus();
 
         codigoInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                const codigo = codigoInput.value.trim();
+                if (codigo) {
+                    fetch('/api/escanear', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codigo_barra: codigo })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            mostrarMensagem(data.message, true);
+                            adicionarOuIncrementarItem(data.codigo_barra, data.nome);
+                        } else {
+                            mostrarMensagem(data.message, false);
+                        }
+                        codigoInput.value = '';
+                    });
+                }
+            }
+        });
+
+        function adicionarOuIncrementarItem(codigo, nome) {
+            if (!sessionCount[codigo]) {
+                sessionCount[codigo] = { nome: nome, quantidade: 1 };
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${codigo}</td><td>${nome}</td><td id="qtd_${codigo}">1</td>`;
+                countTableBody.appendChild(row);
+            } else {
+                sessionCount[codigo].quantidade++;
+                document.getElementById(`qtd_${codigo}`).textContent = sessionCount[codigo].quantidade;
+            }
+            totalCount++;
+            totalCountSpan.textContent = totalCount;
+        }
+
+        function mostrarMensagem(msg, sucesso = true) {
+            messageArea.textContent = msg;
+            messageArea.className = sucesso ? 'message success' : 'message error';
+        }
+
+        function limparContador() {
+            sessionCount = {};
+            totalCount = 0;
+            totalCountSpan.textContent = 0;
+            countTableBody.innerHTML = '';
+            mostrarMensagem('Sessão limpa com sucesso.', true);
+        }
+
+        function salvarContagem() {
+            fetch('/api/salvar_contagem', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sessionCount)
+            })
+            .then(res => res.json())
+            .then(data => {
+                mostrarMensagem(data.message, data.success);
+                if (data.success) limparContador();
+            });
+        }
+
+        function exportarDados() {
+            fetch('/api/dados_completos')
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Exportação simulada:', data);
+                    mostrarMensagem('Exportação concluída. (Ver console)', true);
+                });
+        }
+    </script>
+</body>
+</html>
