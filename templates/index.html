@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Estoque - Scanner</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); }
+        h1 { text-align: center; color: #1e3a8a; }
+        .scanner-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        #codigo_barra { padding: 12px; font-size: 1.3em; border: 3px solid #10b981; border-radius: 6px; transition: border-color 0.3s; }
+        #codigo_barra:focus { border-color: #059669; outline: none; box-shadow: 0 0 8px rgba(5, 150, 105, 0.5); }
+        .display-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; border: 1px solid #cce5ff; border-radius: 4px; background-color: #e6f7ff; }
+        .total-counter { font-size: 1.6em; font-weight: bold; color: #007bff; }
+        .buttons-area { display: flex; justify-content: space-around; gap: 10px; margin-top: 30px; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background-color 0.3s, transform 0.1s; }
+        button:active { transform: translateY(1px); }
+        .btn-save { background-color: #10b981; color: white; }
+        .btn-save:hover { background-color: #059669; }
+        .btn-clear { background-color: #f59e0b; color: white; }
+        .btn-clear:hover { background-color: #d97706; }
+        .btn-export { background-color: #3b82f6; color: white; }
+        .btn-export:hover { background-color: #2563eb; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #e0f2f1; color: #064e3b; }
+        .message { margin-top: 15px; padding: 10px; border-radius: 4px; font-weight: bold; text-align: center; }
+        .success { background-color: #d1e7dd; color: #0f5132; }
+        .error { background-color: #f8d7da; color: #842029; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Controle de Estoque - Scanner</h1>
+
+        <div class="scanner-area">
+            <label for="codigo_barra">Escanear Código de Barras:</label>
+            <input type="text" id="codigo_barra" placeholder="Aponte o leitor aqui..." autofocus>
+        </div>
+
+        <div class="display-area">
+            <span class="total-counter">Itens na Sessão: <span id="total_count">0</span></span>
+            <div id="message_area" class="message success">Pronto para escanear.</div>
+        </div>
+
+        <table id="count_table">
+            <thead>
+                <tr>
+                    <th>Código de Barras</th>
+                    <th>Nome do Produto</th>
+                    <th>Contagem (Sessão)</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+
+        <div class="buttons-area">
+            <button class="btn-save" onclick="salvarContagem()">1. Salvar Contagem (Atualiza Estoque e Histórico)</button>
+            <button class="btn-clear" onclick="limparContador()">2. Limpar Contador (Apenas a Sessão)</button>
+            <button class="btn-export" onclick="exportarDados()">3. Exportar Dados (Estoque e Histórico)</button>
+        </div>
+    </div>
+
+    <script>
+        const codigoInput = document.getElementById('codigo_barra');
+        const totalCountSpan = document.getElementById('total_count');
+        const countTableBody = document.querySelector('#count_table tbody');
+        const messageArea = document.getElementById('message_area');
+        
+        let sessionCount = {};
+        let totalCount = 0;
+
+        codigoInput.focus();
+
+        codigoInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
